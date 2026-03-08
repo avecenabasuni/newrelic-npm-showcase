@@ -20,6 +20,7 @@ This repository provides a production-grade SNMP record library and simulation f
 Follow these steps to initialize your monitoring stack.
 
 ### 1. Configure New Relic
+
 Ensure you have your License Key and Account ID ready.
 
 ```bash
@@ -28,6 +29,7 @@ export NR_LICENSE_KEY="your_license_key"
 ```
 
 ### 2. Deploy the Network Simulator
+
 Create a bridge network and launch the device containers.
 
 ```bash
@@ -40,7 +42,12 @@ docker run -d --name cisco-router --network testnet --ip 10.10.0.10 \
 ```
 
 ### 3. Translate and Ingest
+
 Use ktranslate to poll the simulated devices and ship metrics to New Relic.
+
+### 4. Optional: Simulate Syslog Traffic
+
+Along with SNMP polling and traps, this repository contains a multi-device Python syslog generator for simulating correlated `RFC 3164` background noises and incidents (e.g., interface flaps, BGP resets). Check out the `network-syslog-simulator/` directory.
 
 ## Device Library
 
