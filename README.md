@@ -45,9 +45,9 @@ docker run -d --name cisco-router --network testnet --ip 10.10.0.10 \
 
 Use ktranslate to poll the simulated devices and ship metrics to New Relic.
 
-### 4. Optional: Simulate Syslog Traffic
+### 4. Optional: Simulate Traps & Syslog Traffic
 
-Along with SNMP polling and traps, this repository contains a multi-device Python syslog generator for simulating correlated `RFC 3164` background noises and incidents (e.g., interface flaps, BGP resets). Check out the `network-syslog-simulator/` directory.
+Along with standard SNMP polling, this repository contains multi-device Python generators for simulating correlated `RFC 3164` syslog messages and `SNMPv2c` traps. These simulate background noise and synchronized incidents (e.g., interface flaps, BGP resets, and disk exhaustion). Check out the `network-trap-simulator/` and `network-syslog-simulator/` directories.
 
 ## Device Library
 
