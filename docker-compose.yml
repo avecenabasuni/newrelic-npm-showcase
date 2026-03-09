@@ -1,0 +1,190 @@
+version: '3.8'
+
+networks:
+  testnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.0.0/24
+
+services:
+  # ==========================================
+  # NETWORK DEVICE SIMULATORS (SNMP)
+  # ==========================================
+  cisco-router:
+    image: tandrup/snmpsim
+    container_name: cisco-router
+    networks:
+      testnet:
+        ipv4_address: 10.10.0.10
+    volumes:
+      - ./snmp-record/cisco-router:/usr/local/snmpsim/data
+    restart: unless-stopped
+
+  cisco-switch:
+    image: tandrup/snmpsim
+    container_name: cisco-switch
+    networks:
+      testnet:
+        ipv4_address: 10.10.0.11
+    volumes:
+      - ./snmp-record/cisco-switch:/usr/local/snmpsim/data
+    restart: unless-stopped
+
+  linksys-router:
+    image: tandrup/snmpsim
+    container_name: linksys-router
+    networks:
+      testnet:
+        ipv4_address: 10.10.0.12
+    volumes:
+      - ./snmp-record/linksys-router:/usr/local/snmpsim/data
+    restart: unless-stopped
+
+  linux-server:
+    image: tandrup/snmpsim
+    container_name: linux-server
+    networks:
+      testnet:
+        ipv4_address: 10.10.0.13
+    volumes:
+      - ./snmp-record/linux-server:/usr/local/snmpsim/data
+    restart: unless-stopped
+
+  mikrotik-router:
+    image: tandrup/snmpsim
+    container_name: mikrotik-router
+    networks:
+      testnet:
+        ipv4_address: 10.10.0.14
+    volumes:
+      - ./snmp-record/mikrotik-router:/usr/local/snmpsim/data
+    restart: unless-stopped
+
+  # ==========================================
+  # KTRANSLATE RECEIVERS
+  # ==========================================
+  ksnmp:
+    image: kentik/ktranslate:v2
+    container_name: ksnmp
+    networks:
+      - testnet
+    volumes:
+      - ./snmp-base.yaml:/snmp-base.yaml
+    environment:
+      - NEW_RELIC_API_KEY=${NR_LICENSE_KEY:?NR_LICENSE_KEY is required}
+    command: >
+      -snmp /snmp-base.yaml
+      -nr_account_id=${NR_ACCOUNT_ID:?NR_ACCOUNT_ID is required}
+      -metrics=jchf
+      -tee_logs=true
+      -service_name=snmp
+      -snmp_discovery_on_start=true
+      -snmp_discovery_min=180
+      nr1.snmp
+    restart: unless-stopped
+    depends_on:
+      - cisco-router
+      - cisco-switch
+      - linksys-router
+      - linux-server
+      - mikrotik-router
+
+  ktraps:
+    image: kentik/ktranslate:v2
+    container_name: ktraps
+    networks:
+      - testnet
+    ports:
+      - "1162:1620/udp"
+    volumes:
+      - ./traps-base.yaml:/snmp-base.yaml
+    environment:
+      - NEW_RELIC_API_KEY=${NR_LICENSE_KEY:?NR_LICENSE_KEY is required}
+    command: >
+      -snmp /snmp-base.yaml
+      -nr_account_id=${NR_ACCOUNT_ID:?NR_ACCOUNT_ID is required}
+      -metrics=jchf
+      -tee_logs=true
+      -service_name=traps
+      nr1.snmp
+    restart: unless-stopped
+
+  ksyslog:
+    image: kentik/ktranslate:v2
+    container_name: ksyslog
+    networks:
+      - testnet
+    ports:
+      - "5143:5143/udp"
+    environment:
+      - NEW_RELIC_API_KEY=${NR_LICENSE_KEY:?NR_LICENSE_KEY is required}
+    command: >
+      -nr_account_id=${NR_ACCOUNT_ID:?NR_ACCOUNT_ID is required}
+      -metrics=jchf
+      -tee_logs=true
+      -dns=local
+      -service_name=syslog
+      nr1.syslog
+    restart: unless-stopped
+
+  knetflow:
+    image: kentik/ktranslate:v2
+    container_name: knetflow
+    networks:
+      - testnet
+    ports:
+      - "9995:9995/udp"
+    volumes:
+      - ./snmp-base.yaml:/snmp-base.yaml
+    environment:
+      - NEW_RELIC_API_KEY=${NR_LICENSE_KEY:?NR_LICENSE_KEY is required}
+    command: >
+      -snmp /snmp-base.yaml
+      -nr_account_id=${NR_ACCOUNT_ID:?NR_ACCOUNT_ID is required}
+      -metrics=jchf
+      -tee_logs=true
+      -service_name=flow
+      nr1.flow
+    restart: unless-stopped
+
+  # ==========================================
+  # EVENT SIMULATORS
+  # ==========================================
+  trap-sim:
+    build: ./network-trap-simulator
+    container_name: trap-sim
+    networks:
+      - testnet
+    environment:
+      - TRAP_TARGET=ktraps
+      - TRAP_PORT=1620
+      - INTERVAL_SEC=15
+      - INCIDENT_PROBABILITY=0.15
+    restart: unless-stopped
+    depends_on:
+      - ktraps
+
+  syslog-sim:
+    build: ./network-syslog-simulator
+    container_name: syslog-sim
+    networks:
+      - testnet
+    environment:
+      - SYSLOG_TARGET=ksyslog
+      - SYSLOG_PORT=5143
+      - INTERVAL_SEC=10
+      - INCIDENT_PROBABILITY=0.15
+    restart: unless-stopped
+    depends_on:
+      - ksyslog
+
+  nflow-gen:
+    image: networkstatic/nflow-generator
+    container_name: nflow-gen
+    networks:
+      - testnet
+    command: -t knetflow -p 9995
+    restart: unless-stopped
+    depends_on:
+      - knetflow
