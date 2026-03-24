@@ -1,4 +1,6 @@
-version: '3.8'
+# Run: docker compose up -d
+# Requires .env file with NR_LICENSE_KEY and NR_ACCOUNT_ID
+
 
 networks:
   testnet:
@@ -125,6 +127,7 @@ services:
       -tee_logs=true
       -dns=local
       -service_name=syslog
+      -syslog.source=0.0.0.0:5143
       nr1.syslog
     restart: unless-stopped
 
@@ -145,6 +148,9 @@ services:
       -metrics=jchf
       -tee_logs=true
       -service_name=flow
+      -nf.source=netflow5
+      -nf.port=9995
+      -flow_only=true
       nr1.flow
     restart: unless-stopped
 
