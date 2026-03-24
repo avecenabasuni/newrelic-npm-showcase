@@ -90,7 +90,7 @@ docker compose down -v
 
 ## Full Tutorial
 
-The step-by-step walkthrough is in [`medium.md`](medium.md). It covers SNMP polling, trap ingestion, syslog forwarding, and NetFlow collection from scratch.
+The step-by-step walkthrough is in [`my Medium article`](https://avecenabasuni.medium.com/new-relic-network-monitoring-a-complete-tutorial-without-physical-devices-14cc515077e8). It covers SNMP polling, trap ingestion, syslog forwarding, and NetFlow collection from scratch.
 
 ## Acknowledgments
 
