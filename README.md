@@ -1,70 +1,103 @@
-# New Relic SNMP Monitoring: Multi-Vendor Performance Showcase
+# New Relic Network Monitoring Demo
 
-Transform your network into a transparent observability ecosystem using Docker and simulated telemetry.
+A containerized lab for simulating multi-vendor network telemetry and shipping it to New Relic. Five SNMP-simulated devices, plus custom trap and syslog generators, all wired together with Docker Compose.
 
-## The Problem: Network Black Boxes
+![Architecture](images/thumbnail.png)
 
-Monitoring modern network infrastructure often requires expensive hardware or complex lab setups just to test basic metric ingestion. Without visibility, critical events like BGP session drops or interface errors remain hidden until they impact users.
+## What's Inside
 
-## The Solution: One-Click Telemetry Simulation
+| Component | Description |
+|---|---|
+| `snmp-record/` | Pre-recorded SNMP walk data for 5 device profiles |
+| `network-trap-simulator/` | Python-based SNMPv2c trap generator with incident scenarios |
+| `network-syslog-simulator/` | Python-based RFC 3164 syslog generator with correlated events |
+| `docker-compose.yml` | One-click deployment of all simulators and ktranslate receivers |
+| `architecture-diagram.drawio` | Editable architecture diagram |
+| `medium.md` | Full tutorial article |
 
-This repository provides a production-grade SNMP record library and simulation framework. By leveraging Docker and Kentik ktranslate, you can stream real-world telemetry from varied vendors directly into New Relic in minutes.
+## Simulated Devices
 
-### Key Value Propositions
-* **Zero Cost Testing:** Simulate high-end Cisco and MikroTik hardware without the hardware.
-* **Unified Observability:** Bridge the gap between server logs and network metrics.
-* **Rapid Deployment:** Go from empty dashboard to full visibility in one afternoon.
+| Device | IP Address | Profile |
+|---|---|---|
+| Cisco Router | 10.10.0.10 | IOS system & interface metrics |
+| Cisco Switch | 10.10.0.11 | Layer 2/3 switching telemetry |
+| Linksys Router | 10.10.0.12 | Consumer gateway simulation |
+| Linux Server | 10.10.0.13 | UCD-SNMP application server |
+| MikroTik Router | 10.10.0.14 | RB750Gr3 multi-vendor showcase |
 
-## Getting Started
+## Prerequisites
 
-Follow these steps to initialize your monitoring stack.
+- Docker and Docker Compose
+- A [New Relic](https://newrelic.com/) account (free tier works)
+- Your New Relic **License Key** and **Account ID**
 
-### 1. Configure New Relic
+## Quick Start
 
-Ensure you have your License Key and Account ID ready.
+1. **Clone the repo**
+
+   ```bash
+   git clone https://github.com/avecenabasuni/newrelic-npm-showcase.git
+   cd newrelic-npm-showcase
+   ```
+
+2. **Create a `.env` file** in the project root
+
+   ```env
+   NR_LICENSE_KEY=your_license_key_here
+   NR_ACCOUNT_ID=your_account_id_here
+   ```
+
+3. **Bring everything up**
+
+   ```bash
+   docker compose up -d
+   ```
+
+   This starts all 5 SNMP simulators, 4 ktranslate receivers (SNMP, Traps, Syslog, NetFlow), and the trap/syslog/flow generators.
+
+4. **Check New Relic** -- metrics should appear within a few minutes under Network Monitoring.
+
+## Tearing Down
 
 ```bash
-export NR_ACCOUNT_ID="your_account_id"
-export NR_LICENSE_KEY="your_license_key"
+docker compose down -v
 ```
 
-### 2. Deploy the Network Simulator
+## Project Structure
 
-Create a bridge network and launch the device containers.
-
-```bash
-docker network create --subnet 10.10.0.0/24 testnet
-
-# Example: Run the Cisco Router
-docker run -d --name cisco-router --network testnet --ip 10.10.0.10 \
-  -v $(pwd)/snmp-record/cisco-router:/usr/local/snmpsim/data \
-  tandrup/snmpsim
+```
+.
+├── docker-compose.yml
+├── snmp-record/
+│   ├── cisco-router/public.snmprec
+│   ├── cisco-switch/public.snmprec
+│   ├── linksys-router/public.snmprec
+│   ├── linux-server/public.snmprec
+│   └── mikrotik-router/public.snmprec
+├── network-trap-simulator/
+│   ├── Dockerfile
+│   ├── generate.py
+│   └── README.md
+├── network-syslog-simulator/
+│   ├── Dockerfile
+│   ├── generate.py
+│   └── README.md
+├── images/
+│   └── thumbnail.png
+├── architecture-diagram.drawio
+└── medium.md
 ```
 
-### 3. Translate and Ingest
+## Full Tutorial
 
-Use ktranslate to poll the simulated devices and ship metrics to New Relic.
+The step-by-step walkthrough is in [`medium.md`](medium.md). It covers SNMP polling, trap ingestion, syslog forwarding, and NetFlow collection from scratch.
 
-### 4. Optional: Simulate Traps & Syslog Traffic
+## Acknowledgments
 
-Along with standard SNMP polling, this repository contains multi-device Python generators for simulating correlated `RFC 3164` syslog messages and `SNMPv2c` traps. These simulate background noise and synchronized incidents (e.g., interface flaps, BGP resets, and disk exhaustion). Check out the `network-trap-simulator/` and `network-syslog-simulator/` directories.
+- [Kentik ktranslate](https://github.com/kentik/ktranslate) for the SNMP/trap/syslog/flow receiver
+- [snmpsim](https://github.com/tandrup/docker-snmpsim) for SNMP device simulation
+- [nflow-generator](https://github.com/nerdalert/nflow-generator) for NetFlow v5 traffic
 
-## Device Library
+## License
 
-This repository includes pre-configured SNMP records for:
-* **Cisco Router:** IOS-standard system and interface metrics.
-* **Cisco Switch:** Layer 2/3 switching telemetry.
-* **Linksys Router:** Consumer-grade gateway simulation.
-* **Linux Server:** Application server health (UCD-SNMP).
-* **MikroTik Router:** Advanced multi-vendor showcase with RB750Gr3 records.
-
-## ROI and Impact
-
-By implementing this stack, engineering teams achieve:
-* **Lower MTTR:** Identify the root cause of network issues instantly through correlation.
-* **Better Capacity Planning:** Use high-fidelity flow data to predict bandwidth needs.
-* **Reduced Risk:** Test monitoring alerts and automation in a safe, simulated sandbox.
-
----
-
-Built with precision for the New Relic community.
+This project is provided as-is for educational and demonstration purposes.
